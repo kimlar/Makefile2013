@@ -1,0 +1,121 @@
+# Makefile for this project running Windows
+
+# Set path for NSIS Compiler. Remember to install to: ~/NSIS
+export PATH := $(HOME)/NSIS:$(PATH)
+
+
+# compile source files with g++
+CC = g++
+# link with g++
+LD = g++
+# compiler flags go here.
+CFLAGS = -Wall
+# linker flags go here. Code optimization: "-s" strip debug info and symbols.
+LDFLAGS = -s -lsfml-graphics -lsfml-window -lsfml-system -lsfml-network -lsfml-audio
+# list of generated object files.
+OBJS = ../Temp/Kingdoms.o ../Temp/GameEngine.o ../Temp/MainMenu.o ../Temp/Game.o ../Temp/Crew.o
+# deployments needed
+DEPLOY = ../Temp/resource.o
+# program executable file name.
+PROG = ../Game/Kingdoms
+
+# top-level rule, to compile everything.
+all: $(PROG)
+
+# rule to link the program
+$(PROG): $(OBJS)
+	
+	@echo "Creating win32 resources (icons, bitmaps, copyright info etc..)"
+	windres -i deployments/windows/resource.rc -o ../Temp/resource.o
+	
+	$(LD) -Wall -mwindows -o $(PROG) $(OBJS) $(DEPLOY) $(LDFLAGS)
+
+# rule for file "../Temp/Kingdoms.o".
+../Temp/Kingdoms.o: Kingdoms.cpp GameEngine.h
+	$(CC) $(CFLAGS) -c Kingdoms.cpp -o ../Temp/Kingdoms.o
+
+# rule for file "../Temp/GameEngine.o".
+../Temp/GameEngine.o: GameEngine.cpp GameEngine.h
+	$(CC) $(CFLAGS) -c GameEngine.cpp -o ../Temp/GameEngine.o
+
+# rule for file "../Temp/MainMenu.o".
+../Temp/MainMenu.o: MainMenu.cpp MainMenu.h
+	$(CC) $(CFLAGS) -c MainMenu.cpp -o ../Temp/MainMenu.o
+
+# rule for file "../Temp/Game.o".
+../Temp/Game.o: Game.cpp Game.h
+	$(CC) $(CFLAGS) -c Game.cpp -o ../Temp/Game.o
+
+# rule for file "../Temp/Crew.o".
+../Temp/Crew.o: Crew.cpp Crew.h
+	$(CC) $(CFLAGS) -c Crew.cpp -o ../Temp/Crew.o
+
+
+#
+# *** ALL BELOW ARE JUST REDIRECTING TO THIS OS PLATFORM ***
+#
+#
+#                    0        1         2         3           4           5
+# Project Stages: [empty]->[assets]->[deploy]->[binary]->[installer]->[publish]
+
+# 0: Empty the project ( deletes EVERYTHING in ../Game and ../Temp )
+empty:
+	@echo empty...
+	rm -rf ../Game
+	rm -rf ../Temp
+	mkdir -p ../Game
+	mkdir -p ../Temp
+
+# 1: Recreate the game assets ( deletes EVERYTHING in ../Game/Data and ../Game/User then executes the ../Assets/Makefile )
+assets:
+	@echo assets...
+	rm -rf ../Game/Data
+	rm -rf ../Game/User
+	mkdir -p ../Game/Data
+	mkdir -p ../Game/User
+	@make --no-print-directory -f ../Assets/Makefile
+
+# 2: Deploys current OS's runtime and other support files ( deploy runtime and everything to run project from ../Game )
+deploy:
+	@echo deploy...
+	@echo Deploying Runtime...
+	cp deployments/windows/runtime/* ../Game
+
+# 3: Compile binary ( for current OS ) [this is just an alias for "make"]
+binary: all
+	@echo binary...
+
+# 4: Create an installer ( this makes a *typical* installer for current OS )
+installer:
+	@echo installer...
+	@echo Deploying Installer...
+	cp deployments/windows/installer/* ../Game
+	@echo TODO: update or generate script
+	@echo "Create a NSIS installer from nsi script"
+	@makensis ../Game/complete.nsi
+	@echo Moving the installer to ../Temp
+	mv ../Game/Kingdoms-installer.exe ../Temp
+
+# 5: Publishes the game ( ftp upload the installer for current OS )
+publish:
+	@echo publish...
+
+#
+# *** Utils for the project ***
+#
+
+# Backup the project ( first creates one local backup then ftp uploads the backup to a central backup-server ) [Kingdoms-yyyyMMddHHmmss.zip]
+backup:
+	@echo backup...
+	cd ../..;zip -r "Kingdoms-"`date +"%Y%m%d%H%M%S"`.zip Kingdoms
+
+# Cleans the project ( deletes everything in ../Temp )
+clean:
+	@echo clean...
+	rm -rf ../Temp
+	mkdir -p ../Temp
+
+# Same as [make binary] and execute binary
+run: all
+	@echo run...
+	cd ../Game;./Kingdoms
